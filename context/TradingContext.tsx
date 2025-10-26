@@ -28,6 +28,8 @@ export interface TradeData {
     timestamp?: string; // To uniquely identify and sort
 }
 
+export type NewTradeData = Omit<TradeData, 'timestamp'>;
+
 export interface AlertState {
     message: string;
     visible: boolean;
@@ -38,13 +40,17 @@ interface TradingContextType {
     tradingHistory: TradeData[];
     alert: AlertState;
     updateLatestData: (data: TradeData) => void;
-    addTradeToHistory: (tradeData: TradeData) => void;
+    addTradeToHistory: (tradeData: NewTradeData) => TradeData;
     showAlert: (message: string) => void;
 }
 
 const TradingContext = createContext<TradingContextType | undefined>(undefined);
 
-export const TradingProvider = ({ children }: { children: ReactNode }) => {
+interface TradingProviderProps {
+    children: ReactNode;
+}
+
+export const TradingProvider: React.FC<TradingProviderProps> = ({ children }) => {
     const [latestCalculatedData, setLatestCalculatedData] = useState<TradeData>({
         capitalInicial: '10000',
         liquidez: '0',
@@ -59,9 +65,10 @@ export const TradingProvider = ({ children }: { children: ReactNode }) => {
         setLatestCalculatedData(data);
     };
 
-    const addTradeToHistory = (tradeData: TradeData) => {
+    const addTradeToHistory = (tradeData: NewTradeData): TradeData => {
         const tradeWithTimestamp = { ...tradeData, timestamp: new Date().toISOString() };
         setTradingHistory(prev => [tradeWithTimestamp, ...prev]);
+        return tradeWithTimestamp;
     };
     
     const showAlert = (message: string) => {

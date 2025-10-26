@@ -1,11 +1,13 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Card from '../components/Card';
 import { useTradingContext } from '../context/TradingContext';
 import { TradeData } from '../context/TradingContext';
 
 const Dashboard: React.FC = () => {
   const { latestCalculatedData, tradingHistory } = useTradingContext();
+  const location = useLocation();
+  const newTradeTimestamp = location.state?.newTradeTimestamp;
 
   const formatCurrency = (value: string | number | undefined) => {
     if (value === undefined || value === null) return '$0.00';
@@ -70,7 +72,7 @@ const Dashboard: React.FC = () => {
                 </tr>
               ) : (
                 tradingHistory.map((trade) => (
-                  <tr key={trade.timestamp} className="border-b border-border hover:bg-button/50">
+                  <tr key={trade.timestamp} className={`border-b border-border hover:bg-button/50 transition-colors ${trade.timestamp === newTradeTimestamp ? 'animate-highlight-fade-out' : ''}`}>
                     <td className="p-3 text-text-secondary whitespace-nowrap">{formatDate(trade.timestamp)}</td>
                     {historyHeaders.map(header => (
                       <td key={header.key} className="p-3 text-text-secondary font-mono">

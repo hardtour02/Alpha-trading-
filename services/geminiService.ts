@@ -1,4 +1,4 @@
-
+/*
 import { GoogleGenAI, Type } from '@google/genai';
 
 // This is a placeholder for the API key. In a real environment, it must be set.
@@ -47,3 +47,4 @@ export const getBtcTrendSignal = async (): Promise<boolean> => {
     return Math.random() > 0.5;
   }
 };
+*/
