@@ -1,10 +1,7 @@
-import React, { useState, useMemo, ChangeEvent } from 'react';
+import React, { useState, useMemo, ChangeEvent, useEffect } from 'react';
 import Card from '../components/Card';
 import TradingViewWidget from '../components/TradingViewWidget';
-
-// A mock price for calculations, as we cannot get real-time data from the widget.
-// The user can see the live price on the TradingView chart for comparison.
-const MOCK_CURRENT_PRICE = 65000;
+import { useTradingContext } from '../context/TradingContext';
 
 const OperationField: React.FC<{
     label: string;
@@ -35,6 +32,8 @@ const OperationField: React.FC<{
 );
 
 const RiskManagement: React.FC = () => {
+    const { updateLatestData, addTradeToHistory, showAlert } = useTradingContext();
+
     const [inputs, setInputs] = useState({
         capitalInicial: '10000',
         riesgo: '2',
@@ -42,8 +41,8 @@ const RiskManagement: React.FC = () => {
         feeCompra: '0.1',
         feeVenta: '0.1',
     });
-    const [ordenLimit, setOrdenLimit] = useState(MOCK_CURRENT_PRICE.toString());
-    const [timeframe, setTimeframe] = useState('D'); // Default to 24h (Daily)
+    const [ordenLimit, setOrdenLimit] = useState('65000');
+    const [timeframe, setTimeframe] = useState('D');
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -67,34 +66,29 @@ const RiskManagement: React.FC = () => {
         const feeVenta = parseFloat(inputs.feeVenta) || 0;
         const ordenLimitValue = parseFloat(ordenLimit) || 0;
 
-        // Auto-calculated values
         const delta = fluctuacion / 2;
         const trailingStopPerc = fluctuacion;
         
         if (capitalInicial === 0 || riesgo === 0 || fluctuacion === 0) return {};
         
-        // Formulas
         const inversion = capitalInicial / (fluctuacion / riesgo);
         const udr = capitalInicial * (riesgo / 100);
         const udrAFavor = 100 / riesgo;
         const totalOperaciones = inversion > 0 ? capitalInicial / inversion : 0;
         
-        // Derived calculations
         const profitAmount = inversion * (fluctuacion / 100);
         const feeAmount = inversion * ((feeCompra + feeVenta) / 100);
         const capitalFinal = capitalInicial + profitAmount - feeAmount;
         const liquidez = capitalFinal;
         
-        // Price level calculations based on Orden Limit
         const fluctuacionAmount = ordenLimitValue * (fluctuacion / 100);
         
         const stopLossPrice = ordenLimitValue - fluctuacionAmount;
-        const trailingStopPrice = ordenLimitValue - fluctuacionAmount; // Same as SL
+        const trailingStopPrice = ordenLimitValue - fluctuacionAmount;
         const profitPrice1 = ordenLimitValue + fluctuacionAmount;
         const profitPrice2 = ordenLimitValue + (2 * fluctuacionAmount);
         const profitPrice3 = ordenLimitValue + (3 * fluctuacionAmount);
 
-        // Profit container calculations (based on investment)
         const inversionFluctuationAmount = inversion * (fluctuacion / 100);
         const profitOB1 = inversion + inversionFluctuationAmount;
         const profitOB2 = inversion + (2 * inversionFluctuationAmount);
@@ -112,13 +106,11 @@ const RiskManagement: React.FC = () => {
             delta: delta.toFixed(2),
             trailingStop: trailingStopPerc.toFixed(2),
             
-            // Profit container values
             profitOB1: profitOB1.toFixed(2),
             profitOB2: profitOB2.toFixed(2),
             profitOB3: profitOB3.toFixed(2),
             sltProfit: sltProfit.toFixed(2),
 
-            // Operation price levels
             profit1: profitPrice1.toFixed(2),
             profit2: profitPrice2.toFixed(2),
             profit3: profitPrice3.toFixed(2),
@@ -127,6 +119,29 @@ const RiskManagement: React.FC = () => {
         };
     }, [inputs, ordenLimit]);
     
+    useEffect(() => {
+        const fullData = {
+            ...calculatedData,
+            capitalInicial: inputs.capitalInicial,
+            riesgo: inputs.riesgo,
+            fluctuacion: inputs.fluctuacion,
+            ordenLimit: ordenLimit,
+        };
+        updateLatestData(fullData);
+    }, [calculatedData, inputs, ordenLimit, updateLatestData]);
+
+    const handleRegisterTrade = () => {
+        const tradeData = {
+            ...calculatedData,
+            capitalInicial: inputs.capitalInicial,
+            riesgo: inputs.riesgo,
+            fluctuacion: inputs.fluctuacion,
+            ordenLimit: ordenLimit,
+        };
+        addTradeToHistory(tradeData);
+        showAlert('Operación registrada exitosamente');
+    };
+
     const timeframes = [
         { label: '1h', value: '60' },
         { label: '24h', value: 'D' },
@@ -154,9 +169,7 @@ const RiskManagement: React.FC = () => {
             
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 
-                {/* Left Column */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Gestión TRADING */}
                     <div className="bg-card p-4 rounded-lg border border-border">
                         <h2 className="text-lg font-semibold text-text mb-4">Gestión TRADING</h2>
                         <div className="space-y-4">
@@ -173,10 +186,17 @@ const RiskManagement: React.FC = () => {
                                     />
                                 </div>
                             ))}
+                            <div className="pt-2">
+                                <button
+                                    onClick={handleRegisterTrade}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-lg"
+                                >
+                                    Registrar Operación
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    {/* GESTION OPERACION */}
                     <div className="bg-card p-4 rounded-lg border border-border">
                         <h2 className="text-lg font-semibold text-text mb-4">GESTION OPERACION</h2>
                         <div className="space-y-4">
@@ -197,7 +217,6 @@ const RiskManagement: React.FC = () => {
                         </div>
                     </div>
                     
-                    {/* Profit */}
                     <div className="bg-card p-4 rounded-lg border border-border">
                         <h2 className="text-lg font-semibold text-text mb-4">Profit</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -208,7 +227,6 @@ const RiskManagement: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* TRADING */}
                     <div className="bg-card p-4 rounded-lg border border-border">
                         <h2 className="text-lg font-semibold text-text mb-4">TRADING</h2>
                         <div className="space-y-4">
@@ -229,7 +247,6 @@ const RiskManagement: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Right Column */}
                 <div className="lg:col-span-3 bg-card p-4 rounded-lg border border-border min-h-[500px] h-[1250px] lg:h-auto flex flex-col">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                         <h2 className="text-lg font-semibold text-text">Gráfico en Tiempo Real (BTC/USDT)</h2>

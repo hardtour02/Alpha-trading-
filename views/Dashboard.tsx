@@ -1,72 +1,87 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../components/Card';
-import Badge from '../components/Badge';
-import { getBtcTrendSignal } from '../services/geminiService';
+import { useTradingContext } from '../context/TradingContext';
+import { TradeData } from '../context/TradingContext';
 
 const Dashboard: React.FC = () => {
-  const [btcTrend, setBtcTrend] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { latestCalculatedData, tradingHistory } = useTradingContext();
 
-  useEffect(() => {
-    const fetchTrend = async () => {
-      setIsLoading(true);
-      try {
-        const trend = await getBtcTrendSignal();
-        setBtcTrend(trend);
-      } catch(e) {
-        console.error(e);
-        setBtcTrend(null); // Set to null on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTrend();
-  }, []);
-
-  const renderBtcTrend = () => {
-    if (isLoading) {
-      return <div className="animate-pulse bg-gray-600 rounded-full w-24 h-7"></div>;
-    }
-    if (btcTrend === null) {
-      return <Badge color="yellow">No disponible</Badge>;
-    }
-    return btcTrend ? <Badge color="green">Tendencia Alcista</Badge> : <Badge color="red">Tendencia Bajista</Badge>;
+  const formatCurrency = (value: string | number | undefined) => {
+    if (value === undefined || value === null) return '$0.00';
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num)}`;
   };
+  
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('es-ES', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+  };
+  
+  const historyHeaders: { key: keyof TradeData; label: string }[] = [
+      { key: 'capitalInicial', label: 'Capital ($)'},
+      { key: 'riesgo', label: 'Riesgo (%)'},
+      { key: 'fluctuacion', label: 'Fluctuación (%)' },
+      { key: 'inversion', label: 'Inversión ($)' },
+      { key: 'ordenLimit', label: 'OL ($)' },
+      { key: 'stopLoss', label: 'SL ($)' },
+      { key: 'profit1', label: 'OB1 ($)' },
+      { key: 'relacion', label: 'Relación' },
+      { key: 'udr', label: 'UDR ($)' },
+  ];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-bold text-text">Dashboard</h1>
-        <div className="flex items-center gap-2">
-            <span className="font-semibold">Señal BTC Tendencia:</span>
-            {renderBtcTrend()}
-        </div>
+        <h1 className="text-3xl font-bold text-text">Registro Trading</h1>
       </div>
 
-      {/* Resumen Rápido */}
+      {/* Resumen Rápido de la última configuración */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card title="Capital Inicial" value="$10,000" />
-        <Card title="Liquidez Actual" value="$12,450.75" change={24.51} />
-        <Card title="Total Operaciones" value="134" />
-        <Card title="UDR" value="1.85" />
+        <Card title="Capital (Configurado)" value={formatCurrency(latestCalculatedData.capitalInicial)} />
+        <Card title="Liquidez (Estimada)" value={formatCurrency(latestCalculatedData.liquidez)} />
+        <Card title="Total Operaciones" value={latestCalculatedData.totalOperaciones || 'N/A'} />
+        <Card title="UDR" value={formatCurrency(latestCalculatedData.udr)} />
       </div>
 
-      {/* Accesos Directos */}
+      {/* Historial de Operaciones */}
       <div className="bg-card p-4 rounded-lg border border-border">
-        <h2 className="text-lg font-semibold text-text mb-4">Accesos Directos</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link to="/markets" className="bg-button hover:bg-button-hover text-text font-bold py-3 px-4 rounded-lg text-center transition-colors">
-            Ver Mercados
-          </Link>
-          <Link to="/signals" className="bg-button hover:bg-button-hover text-text font-bold py-3 px-4 rounded-lg text-center transition-colors">
-            Analizar Señales
-          </Link>
-          <Link to="/risk-management" className="bg-button hover:bg-button-hover text-text font-bold py-3 px-4 rounded-lg text-center transition-colors">
-            Gestión de Riesgo
-          </Link>
+        <h2 className="text-lg font-semibold text-text mb-4">Historial de Operaciones</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="border-b-2 border-border">
+              <tr>
+                <th className="p-3 text-sm font-semibold text-text-secondary">Fecha</th>
+                 {historyHeaders.map(header => (
+                  <th key={header.key} className="p-3 text-sm font-semibold text-text-secondary">{header.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tradingHistory.length === 0 ? (
+                 <tr>
+                    <td colSpan={historyHeaders.length + 2} className="text-center py-10">
+                        <p className="text-text-secondary">No hay operaciones registradas.</p>
+                        <p className="text-text-secondary mt-2">Ve a <Link to="/risk-management" className="text-blue-400 hover:underline">Gestión de Riesgo</Link> para planificar y registrar tu primera operación.</p>
+                    </td>
+                </tr>
+              ) : (
+                tradingHistory.map((trade) => (
+                  <tr key={trade.timestamp} className="border-b border-border hover:bg-button/50">
+                    <td className="p-3 text-text-secondary whitespace-nowrap">{formatDate(trade.timestamp)}</td>
+                    {historyHeaders.map(header => (
+                      <td key={header.key} className="p-3 text-text-secondary font-mono">
+                        {header.label.includes('($)') ? formatCurrency(trade[header.key]) : trade[header.key] || 'N/A'}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

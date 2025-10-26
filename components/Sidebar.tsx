@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { NAV_LINKS } from '../constants';
@@ -10,8 +9,15 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
-  const linkClasses = "flex items-center px-4 py-3 text-text-secondary hover:bg-card hover:text-text transition-colors duration-200 rounded-lg";
+  const linkClasses = "flex items-center w-full px-4 py-3 text-text-secondary hover:bg-card hover:text-text transition-colors duration-200 rounded-lg";
   const activeLinkClasses = "bg-button text-text";
+
+  const handleLinkClick = () => {
+      // Close the sidebar on link click, primarily for mobile view
+      if (isOpen) {
+          setIsOpen(false);
+      }
+  };
 
   return (
     <>
@@ -40,10 +46,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         <nav className="mt-4 p-2">
           <ul>
             {NAV_LINKS.map((link) => (
-              <li key={link.href} className="mb-1">
+              <li key={link.href} className="mb-1" onClick={handleLinkClick}>
                 <NavLink
                   to={link.href}
-                  onClick={() => setIsOpen(false)}
                   className={({ isActive }) => `${linkClasses} ${isActive ? activeLinkClasses : ''}`}
                 >
                   <span className="mr-3">{link.icon}</span>
