@@ -1,12 +1,9 @@
-/*
+// FIX: Uncommented the service and updated it to follow Gemini API best practices.
 import { GoogleGenAI, Type } from '@google/genai';
 
-// This is a placeholder for the API key. In a real environment, it must be set.
-if (!process.env.API_KEY) {
-  process.env.API_KEY = "YOUR_API_KEY_HERE"; // Replace with a real key for testing if needed
-}
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// FIX: Initialize GoogleGenAI with the API key from environment variables.
+// The API key must be provided via `process.env.API_KEY`.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getBtcTrendSignal = async (): Promise<boolean> => {
   try {
@@ -47,4 +44,3 @@ export const getBtcTrendSignal = async (): Promise<boolean> => {
     return Math.random() > 0.5;
   }
 };
-*/
